@@ -132,15 +132,27 @@ func Centroid(va []Vertex, p int) (*Vertex, error) {
 func MakeSimplexAboutPoint(
 	f func([]float64) float64,
 	x0 []float64,
-	dx []float64) ([]Vertex, error) {
+	dx []float64) ([]Vertex, int, error) {
 	n := len(x0)
+	nfe := 0
 	if n == 0 {
-		return nil, errors.New("Zero number of parameters.")
+		return nil, nfe, errors.New("Zero number of parameters.")
 	}
 	if n != len(dx) {
-		return nil, errors.New("len(dx) did not match len(x)")
+		return nil, nfe, errors.New("len(dx) did not match len(x)")
 	}
+	anyZero := false
+	for i := 0; i < n; i++ {
+		if dx[i] == 0.0 {
+			anyZero = true
+		}
+	}
+	if anyZero {
+		return nil, nfe, errors.New("One or more zero value in dx.")
+	}
+	// TODO Option to do the function evaluations in parallel.
 	fx0 := f(x0)
+	nfe += 1
 	smplx := []Vertex{Vertex{x0, fx0}}
 	for i := 0; i < n; i++ {
 		x1 := make([]float64, n)
@@ -149,10 +161,11 @@ func MakeSimplexAboutPoint(
 		}
 		x1[i] += dx[i]
 		fx1 := f(x1)
+		nfe += 1
 		smplx = append(smplx, Vertex{x1, fx1})
 	}
 	sortSimplex(smplx)
-	return smplx, nil
+	return smplx, nfe, nil
 }
 
 func sortSimplex(smplx []Vertex) {
@@ -183,6 +196,7 @@ type Minimizer struct {
 	F                func(x []float64) float64 // Client-supplied objective function.
 	Vertices         []Vertex                  // The simplex is N+1 Vertices, where N is len(x).
 	P                int                       // Number of points to be replaced in parallel.
+	Steps            int                       // Steps between convergence checks.
 	NFEvaluationsMax int                       // Limit function evaluations.
 	NFEvaluations    int
 	Nrestarts        int
@@ -195,6 +209,7 @@ func NewMinimizer(f func([]float64) float64) *Minimizer {
 	m := Minimizer{F: f,
 		Vertices:         nil,
 		P:                1,
+		Steps:            20,
 		NFEvaluationsMax: 300,
 		NFEvaluations:    0,
 		Nrestarts:        0,
@@ -206,8 +221,8 @@ func NewMinimizer(f func([]float64) float64) *Minimizer {
 
 func (m *Minimizer) String() string {
 	// Returns a JSON compatible string.
-	return fmt.Sprintf("{%q:%p, %q:%s, %q:%d, %q:%d, %q:%d, %q:%d, %q:%g, %q:%g, %q:%g}",
-		"fun", m.F, "vertices", m.Vertices, "p", m.P,
+	return fmt.Sprintf("{%q:%p, %q:%s, %q:%d, %q:%d, %q:%d, %q:%d, %q:%d, %q:%g, %q:%g, %q:%g}",
+		"fun", m.F, "vertices", m.Vertices, "p", m.P, "steps", m.Steps,
 		"nfemax", m.NFEvaluationsMax, "nfe", m.NFEvaluations, "nrestarts", m.Nrestarts,
 		"reflect", m.Kreflect, "extend", m.Kextend, "contract", m.Kcontract)
 }
@@ -288,6 +303,23 @@ func (m *Minimizer) replaceVertex(i int, xMid []float64) (bool, int) {
 	return false, nfe
 } // end replaceVertex()
 
+func (m *Minimizer) contractAboutBestPoint() {
+	// Assuming a sorted array, 0 is the best point (minimum value of F).
+	xMin := m.Vertices[0].X
+	// Move all other simplex vertices to half-way between their current point
+	// and the best point.
+	// TODO Option to do the function evaluations in parallel.
+	n := len(xMin)
+	for i := 1; i <= n; i++ {
+		for j := 0; j < n; j++ {
+			m.Vertices[i].X[j] = 0.5*xMin[j] + 0.5*m.Vertices[i].X[j]
+		}
+		m.Vertices[i].F = m.F(m.Vertices[i].X)
+	}
+	m.NFEvaluations += n
+	return
+}
+
 func (m *Minimizer) TakeSteps(nsteps int) error {
 	// Take some steps, updating the simplex.
 	// On return, the best point is m.Vertices[0].
@@ -299,6 +331,7 @@ func (m *Minimizer) TakeSteps(nsteps int) error {
 			return fmt.Errorf("Error while computing centroid: %s", err)
 		}
 		// Try to replace the P worst points.
+		// TODO Option to do the function evaluations in parallel.
 		anySuccess := false
 		for i := 0; i < m.P; i++ {
 			success, nfe := m.replaceVertex(nv-1-i, vMid.X)
@@ -307,28 +340,26 @@ func (m *Minimizer) TakeSteps(nsteps int) error {
 			}
 			m.NFEvaluations += nfe
 		}
-		if anySuccess {
-			sortSimplex(m.Vertices)
-		} else {
-			// Did not improve any of the worst points so
-			// contract the simplex around current best point.
-			// TODO
+		if !anySuccess {
+			// Did not improve any of the worst points.
+			m.contractAboutBestPoint()
 			m.Nrestarts += 1
 		}
+		sortSimplex(m.Vertices)
 	}
 	return nil
 }
 
-func (m *Minimizer) MinimizeFromPoint(x []float64, dx []float64, steps int) error {
+func (m *Minimizer) MinimizeFromPoint(x []float64, dx []float64) error {
 	var err error
-	m.Vertices, err = MakeSimplexAboutPoint(m.F, x, dx)
+	var nfe int
+	m.Vertices, nfe, err = MakeSimplexAboutPoint(m.F, x, dx)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error while making initial simplex: %s", err)
 	}
-	n := len(x)
-	m.NFEvaluations += n + 1
+	m.NFEvaluations += nfe
 	for m.NFEvaluations < m.NFEvaluationsMax {
-		m.TakeSteps(20)
+		m.TakeSteps(m.Steps)
 	}
 	return nil
 }

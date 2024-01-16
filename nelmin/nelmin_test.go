@@ -39,34 +39,36 @@ func TestVertex(t *testing.T) {
 	}
 }
 
-func obj(x []float64) float64 {
-	// Assume 3 parameters.
-	z0 := x[0] - 1.0
-	z1 := x[1] - 1.0
-	z2 := x[2] - 1.0
-	return z0*z0 + z1*z1 + z2*z2
+func obj1(x []float64) float64 {
+	n := len(x)
+	s := 0.0
+	for i := 0; i < n; i++ {
+		s += (x[i] - 1.0) * (x[i] - 1.0)
+	}
+	return s
 }
 
 func TestSimplex(t *testing.T) {
 	fmt.Println("Test Simplex functions")
 	x0 := []float64{1.0, 2.0, 3.0}
 	dx := []float64{0.1, 0.2, 0.3}
-	smplx, err := MakeSimplexAboutPoint(obj, x0, dx)
+	smplx, nfe, err := MakeSimplexAboutPoint(obj1, x0, dx)
 	if err != nil {
 		t.Errorf("Failed to make simplex, err: %s", err)
 	}
 	fmt.Println("smplx=", SimplexToJSON(smplx))
+	fmt.Println("nfe=", nfe)
 	var vmid *Vertex
 	vmid, err = Centroid(smplx, 1)
 	fmt.Println("vmid=", vmid)
 }
 
-func TestMinimizer(t *testing.T) {
-	fmt.Println("Test Minimizer functions")
-	m := NewMinimizer(obj)
-	x := []float64{1.0, 2.0, 3.0}
-	dx := []float64{0.1, 0.2, 0.3}
-	err := m.MinimizeFromPoint(x, dx, 100)
+func TestMinimizer1(t *testing.T) {
+	fmt.Println("Test Minimizer functions for simple quadratic objective")
+	m := NewMinimizer(obj1)
+	x := []float64{0.0, 0.0, 0.0}
+	dx := []float64{0.1, 0.1, 0.1}
+	err := m.MinimizeFromPoint(x, dx)
 	if err != nil {
 		t.Errorf("Failed to mimimize from point, err: %s", err)
 	}
