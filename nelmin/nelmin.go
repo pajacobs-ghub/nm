@@ -183,6 +183,26 @@ func sortSimplex(smplx []Vertex) {
 	return
 }
 
+func fStats(smplx []Vertex) (float64, float64, error) {
+	// Returns mean and standard-deviation for the function values.
+	nv := len(smplx)
+	if nv == 0 {
+		return 0.0, 0.0, errors.New("No points in simplex")
+	}
+	mean := 0.0
+	for i := 0; i < nv; i++ {
+		mean += smplx[i].F
+	}
+	mean /= float64(nv)
+	variance := 0.0
+	for i := 0; i < nv; i++ {
+		dF := smplx[i].F - mean
+		variance += dF * dF
+	}
+	variance /= float64(nv)
+	return mean, math.Sqrt(variance), nil
+}
+
 func SimplexToJSON(smplx []Vertex) string {
 	var b bytes.Buffer
 	b.WriteString(fmt.Sprintf("{%q:%d, %q:%s}", "n", len(smplx)-1, "vertices", smplx))
@@ -368,6 +388,15 @@ func (m *Minimizer) MinimizeFromPoint(x []float64, dx []float64) error {
 	m.NFEvaluations += nfe
 	for m.NFEvaluations < m.NFEvaluationsMax {
 		m.TakeSteps(m.Steps)
+		_, sdev, err := fStats(m.Vertices)
+		if err != nil {
+			return fmt.Errorf("Error while computing function stats: %s", err)
+		}
+		if sdev < m.Tol {
+			// Points within the simplex have similar function values,
+			// and we deem this to be good enough to stop stepping.
+			break
+		}
 	}
 	return nil
 }
