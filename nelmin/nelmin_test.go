@@ -8,6 +8,7 @@ package nelmin
 
 import (
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -71,6 +72,71 @@ func TestMinimizer1(t *testing.T) {
 	err := m.MinimizeFromPoint(x, dx)
 	if err != nil {
 		t.Errorf("Failed to mimimize from point, err: %s", err)
+	}
+	fmt.Printf("m=%s\n", m.String())
+}
+
+func obj2(x []float64) float64 {
+	// Example 3.3 from Olsson and Nelson
+	x1, x2 := x[0], x[1] // Rename to match paper.
+	if (x1*x1 + x2*x2) > 1.0 {
+		return 1.0e38
+	} else {
+		yp := 53.69 + 7.26*x1 - 10.33*x2 + 7.22*x1*x1 + 6.43*x2*x2 + 11.36*x1*x2
+		ys := 82.17 - 1.01*x1 - 8.61*x2 + 1.40*x1*x1 - 8.76*x2*x2 - 7.20*x1*x2
+		return -yp + math.Abs(ys-87.8)
+	}
+}
+
+func TestMinimizer2(t *testing.T) {
+	fmt.Println("Example 3.3 from Olsson and Nelson")
+	m := NewMinimizer(obj2)
+	m.Tol = 1.0e-4
+	x := []float64{0.0, 0.0}
+	dx := []float64{0.5, 0.5}
+	err := m.MinimizeFromPoint(x, dx)
+	if err != nil {
+		t.Errorf("Failed to mimimize from point, err: %s", err)
+	}
+	vRef := Vertex{X: []float64{0.811, -0.585}, F: -67.1}
+	if !m.Vertices[0].ApproxEquals(vRef, 1.0e-3) {
+		t.Errorf("Example 3.3, Should be the same v[0]=%v, vRef=%v",
+			m.Vertices[0], vRef)
+	}
+	fmt.Printf("m=%s\n", m.String())
+}
+
+func obj3(z []float64) float64 {
+	// Example 3.5 from Olsson and Nelson, least squares
+	a1, a2, alpha1, alpha2 := z[0], z[1], z[2], z[3]
+	x := []float64{0.25, 0.50, 1.00, 1.70, 2.00, 4.00}
+	y := []float64{0.25, 0.40, 0.60, 0.58, 0.54, 0.27}
+	s := 0.0
+	for i := 0; i < len(x); i++ {
+		t := x[i]
+		eta := a1*math.Exp(alpha1*t) + a2*math.Exp(alpha2*t)
+		r := y[i] - eta
+		s += r * r
+	}
+	return s
+}
+
+func TestMinimizer3(t *testing.T) {
+	fmt.Println("Example 3.5 from Olsson and Nelson, least squares")
+	m := NewMinimizer(obj3)
+	m.NFEvaluationsMax = 800
+	m.Tol = 1.0e-9
+	m.P = 2
+	x := []float64{1.0, 1.0, -0.5, -2.5}
+	dx := []float64{0.1, 0.1, 0.1, 0.1}
+	err := m.MinimizeFromPoint(x, dx)
+	if err != nil {
+		t.Errorf("Failed to mimimize from point, err: %s", err)
+	}
+	vRef := Vertex{X: []float64{1.801, -1.842, -0.463, -1.205}, F: 0.0009}
+	if !m.Vertices[0].ApproxEquals(vRef, 1.0e-3) {
+		t.Errorf("Example 3.5, Should be the same v[0]=%v, vRef=%v",
+			m.Vertices[0], vRef)
 	}
 	fmt.Printf("m=%s\n", m.String())
 }

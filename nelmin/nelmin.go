@@ -75,14 +75,19 @@ func (v Vertex) String() string {
 	return b.String()
 }
 
+func approxEquals(a float64, b float64, tol float64) bool {
+	// Relative comparison for large numbers, absolute comparison for small numbers
+	return math.Abs(a-b)/(0.5*(math.Abs(a)+math.Abs(b)+1.0)) <= tol
+}
+
 func (v Vertex) ApproxEquals(other Vertex, tol float64) bool {
 	result := true
 	for i := 0; i < len(v.X); i++ {
-		if math.Abs(v.X[i]-other.X[i]) > tol {
+		if !approxEquals(v.X[i], other.X[i], tol) {
 			result = false
 		}
 	}
-	if math.Abs(v.F-other.F) > tol {
+	if !approxEquals(v.F, other.F, tol) {
 		result = false
 	}
 	return result
@@ -203,6 +208,7 @@ type Minimizer struct {
 	Kreflect         float64
 	Kextend          float64
 	Kcontract        float64
+	Tol              float64
 }
 
 func NewMinimizer(f func([]float64) float64) *Minimizer {
@@ -215,16 +221,18 @@ func NewMinimizer(f func([]float64) float64) *Minimizer {
 		Nrestarts:        0,
 		Kreflect:         1.0,
 		Kextend:          2.0,
-		Kcontract:        0.5}
+		Kcontract:        0.5,
+		Tol:              1.0e-6}
 	return &m
 }
 
 func (m *Minimizer) String() string {
 	// Returns a JSON compatible string.
-	return fmt.Sprintf("{%q:%p, %q:%s, %q:%d, %q:%d, %q:%d, %q:%d, %q:%d, %q:%g, %q:%g, %q:%g}",
+	return fmt.Sprintf("{%q:%p, %q:%s, %q:%d, %q:%d, %q:%d, %q:%d, %q:%d, %q:%g, %q:%g, %q:%g, %q:%g}",
 		"fun", m.F, "vertices", m.Vertices, "p", m.P, "steps", m.Steps,
 		"nfemax", m.NFEvaluationsMax, "nfe", m.NFEvaluations, "nrestarts", m.Nrestarts,
-		"reflect", m.Kreflect, "extend", m.Kextend, "contract", m.Kcontract)
+		"reflect", m.Kreflect, "extend", m.Kextend, "contract", m.Kcontract,
+		"tol", m.Tol)
 }
 
 func (m *Minimizer) replaceVertex(i int, xMid []float64) (bool, int) {
