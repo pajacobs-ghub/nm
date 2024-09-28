@@ -65,7 +65,7 @@ func NewVertex(n int) Vertex {
 func (v Vertex) String() string {
 	// We write a JSON compatible representation
 	// so that we can use it when writing the full simplex.
-	// It is readable enough for statnard printing.
+	// It is readable enough for standard printing.
 	var b bytes.Buffer
 	b.WriteString(fmt.Sprintf("{%q:[%g", "x", v.X[0]))
 	for i := 1; i < len(v.X); i++ {
