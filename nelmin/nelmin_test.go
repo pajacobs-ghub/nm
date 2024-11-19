@@ -57,11 +57,18 @@ func TestSimplex(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to make simplex, err: %s", err)
 	}
-	fmt.Println("smplx=", SimplexToJSON(smplx))
-	fmt.Println("nfe=", nfe)
+	// fmt.Println("smplx=", SimplexToJSON(smplx))
+	// fmt.Println("nfe=", nfe)
+	if nfe != 4 {
+		t.Errorf("Simplex setup: nfe=%v should be 4", nfe)
+	}
 	var vmid *Vertex
 	vmid, err = Centroid(smplx, 1)
-	fmt.Println("vmid=", vmid)
+	// fmt.Println("vmid=", vmid)
+	vRef := Vertex{X: []float64{1.0333, 2.0667, 3.0}, F: 5.150}
+	if !vmid.ApproxEquals(vRef, 1.0e-3) {
+		t.Errorf("Simplex centroid: Should be same vmid=%v, vRef=%v", vmid, vRef)
+	}
 }
 
 func TestMinimizer1(t *testing.T) {
@@ -73,7 +80,18 @@ func TestMinimizer1(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to mimimize from point, err: %s", err)
 	}
-	fmt.Printf("m=%s\n", m.String())
+	// fmt.Printf("m=%s\n", m.String())
+	if m.NFEvaluations != 106 {
+		t.Errorf("Wrong number of function evaluations: m.nfe=%v should be 106", m.NFEvaluations)
+	}
+	if m.Nrestarts != 0 {
+		t.Errorf("Wrong number of restarts: nrestarts=%v should be 0", m.Nrestarts)
+	}
+	vRef := Vertex{X: []float64{1.0, 1.0, 1.0}, F: 0.0}
+	vMin := m.Vertices[0]
+	if !vMin.ApproxEquals(vRef, 1.0e-3) {
+		t.Errorf("Wrong minimum point: Should be same vMin=%v, vExpected=%v", vMin, vRef)
+	}
 }
 
 func obj2(x []float64) float64 {
@@ -98,12 +116,18 @@ func TestMinimizer2(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to mimimize from point, err: %s", err)
 	}
-	vRef := Vertex{X: []float64{0.811, -0.585}, F: -67.1}
-	if !m.Vertices[0].ApproxEquals(vRef, 1.0e-3) {
-		t.Errorf("Example 3.3, Should be the same v[0]=%v, vRef=%v",
-			m.Vertices[0], vRef)
+	if m.NFEvaluations != 82 {
+		t.Errorf("Wrong number of function evaluations: nfe=%v should be 82", m.NFEvaluations)
 	}
-	fmt.Printf("m=%s\n", m.String())
+	if m.Nrestarts != 0 {
+		t.Errorf("Wrong number of restarts: nrestarts=%v should be 0", m.Nrestarts)
+	}
+	vRef := Vertex{X: []float64{0.811, -0.585}, F: -67.1}
+	vMin := m.Vertices[0]
+	if !vMin.ApproxEquals(vRef, 1.0e-3) {
+		t.Errorf("Wrong minimum point, Should be same vMin=%v, vRef=%v", vMin, vRef)
+	}
+	// fmt.Printf("m=%s\n", m.String())
 }
 
 func obj3(z []float64) float64 {
@@ -133,10 +157,16 @@ func TestMinimizer3(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to mimimize from point, err: %s", err)
 	}
-	vRef := Vertex{X: []float64{1.801, -1.842, -0.463, -1.205}, F: 0.0009}
-	if !m.Vertices[0].ApproxEquals(vRef, 1.0e-3) {
-		t.Errorf("Example 3.5, Should be the same v[0]=%v, vRef=%v",
-			m.Vertices[0], vRef)
+	if m.NFEvaluations != 495 {
+		t.Errorf("Wrong number of function evaluations: nfe=%v should be 495", m.NFEvaluations)
 	}
-	fmt.Printf("m=%s\n", m.String())
+	if m.Nrestarts != 0 {
+		t.Errorf("Wrong number of restarts: nrestarts=%v should be 0", m.Nrestarts)
+	}
+	vRef := Vertex{X: []float64{1.801, -1.842, -0.463, -1.205}, F: 0.0009}
+	vMin := m.Vertices[0]
+	if !vMin.ApproxEquals(vRef, 1.0e-3) {
+		t.Errorf("Example 3.5, Should be the same vMin=%v, vRef=%v", vMin, vRef)
+	}
+	// fmt.Printf("m=%s\n", m.String())
 }

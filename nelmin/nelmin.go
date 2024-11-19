@@ -174,7 +174,7 @@ func MakeSimplexAboutPoint(
 }
 
 func sortSimplex(smplx []Vertex) {
-	if len(smplx) == 0 {
+	if len(smplx) < 2 {
 		return
 	}
 	sort.Slice(smplx, func(i int, j int) bool {
