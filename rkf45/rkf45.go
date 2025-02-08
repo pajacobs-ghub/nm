@@ -25,7 +25,7 @@ type WorkSpace struct {
 func NewWorkSpace(n int) *WorkSpace {
 	var ws WorkSpace
 	for i := 0; i < 7; i++ {
-		ws.arrays[i] = make([]float64, 3)
+		ws.arrays[i] = make([]float64, n)
 	}
 	return &ws
 }
