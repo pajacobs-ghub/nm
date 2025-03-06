@@ -46,7 +46,15 @@ func TestVector(t *testing.T) {
 	v6.Add(&v4, &v5)
 	v5.Scale(2.0)
 	if len(v6.Data) != 4 || !v6.ApproxEquals(v5, 1.0e-9) {
-		t.Errorf("Vector clone error v6= %v want= %v", v6.String(), v5.String())
+		t.Errorf("Vector add error v6= %v want= %v", v6.String(), v5.String())
+	}
+	v6.SetZeros()
+	if len(v6.Data) != 4 || v6.Data[0] != 0.0 {
+		t.Errorf("Vector set-zeros error v6= %v want= (0.0, 0.0, 0.0, 0.0)", v6.String())
+	}
+	v6.AddWithScale(&v4, &v4, 0.5, 1.5)
+	if len(v6.Data) != 4 || !v6.ApproxEquals(v5, 1.0e-9) {
+		t.Errorf("Vector add-with-scale error v6= %v want= %v", v6.String(), v5.String())
 	}
 	s := VectorDot(&v3, &v3)
 	if math.Abs(s - 4.0) > 1.0e-9 {

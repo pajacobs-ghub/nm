@@ -33,11 +33,6 @@ func TestVertex(t *testing.T) {
 			t.Errorf("Centroid calc, Should be the same v4=%v, v5=%v", v1, v2)
 		}
 	}
-	v6 := NewVertex(3)
-	v6, err = v6.Add(v1, 1.0)
-	if !v6.ApproxEquals(v2, 1.0e-6) {
-		t.Errorf("Add with scale: Should be the same v6=%v, v2=%v", v6, v2)
-	}
 }
 
 func obj1(x []float64) float64 {

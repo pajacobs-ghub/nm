@@ -50,18 +50,30 @@ func (a Vector) Clone() Vector {
 	return z
 }
 
+// Generate a JSON-compatible string representation.
 func (a Vector) String() string {
 	var b bytes.Buffer
 	n := len(a.Data)
-	b.WriteString("(")
+	b.WriteString("[")
 	for i, d := range a.Data {
 		b.WriteString(fmt.Sprintf("%0.6f", d))
 		if i+1 < n {
 			b.WriteString(", ")
 		}
 	}
-	b.WriteString(")")
+	b.WriteString("]")
 	return b.String()
+}
+
+func (z *Vector) SetZeros() *Vector {
+	n := len(z.Data)
+	if n == 0 {
+		return z
+	}
+	for i := 0; i < n; i++ {
+		z.Data[i] = 0.0
+	}
+	return z
 }
 
 func (a Vector) Sum() float64 {
@@ -90,7 +102,10 @@ func (a Vector) ApproxEquals(other Vector, tol float64) bool {
 		return false
 	}
 	for i := 0; i < n; i++ {
-		if math.Abs(a.Data[i]-other.Data[i]) > tol {
+		aa := a.Data[i]
+		bb := other.Data[i]
+	    // Relative comparison for large numbers, absolute comparison for small numbers
+		if math.Abs(aa-bb)/(0.5*(math.Abs(aa)+math.Abs(bb)+1.0)) > tol {
 			return false
 		}
 	}
@@ -118,6 +133,18 @@ func (z *Vector) Add(a, b *Vector) *Vector {
 	}
 	for i := 0; i < n; i++ {
 		z.Data[i] = a.Data[i] + b.Data[i]
+	}
+	return z
+}
+
+func (z *Vector) AddWithScale(a *Vector, b *Vector, sa float64, sb float64) *Vector {
+	n := len(z.Data)
+	if n != len(a.Data) || n != len(b.Data) {
+		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
+			len(z.Data), len(a.Data), len(b.Data)))
+	}
+	for i := 0; i < n; i++ {
+		z.Data[i] = sa*a.Data[i] + sb*b.Data[i]
 	}
 	return z
 }

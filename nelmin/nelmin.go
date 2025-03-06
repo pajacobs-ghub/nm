@@ -93,18 +93,6 @@ func (v Vertex) ApproxEquals(other Vertex, tol float64) bool {
 	return result
 }
 
-func (v Vertex) Add(other Vertex, scale float64) (Vertex, error) {
-	n := len(v.X)
-	if n != len(other.X) {
-		return v, errors.New("Mismatch in len(X).")
-	}
-	for j := 0; j < n; j++ {
-		v.X[j] += other.X[j] * scale
-	}
-	v.F += other.F * scale
-	return v, nil
-}
-
 // We want to compute a centroid of a subset of vertices in the simplex,
 // so leave the last p vertices out of the calculation.
 func Centroid(va []Vertex, p int) (*Vertex, error) {
