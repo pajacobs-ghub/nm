@@ -65,13 +65,13 @@ func (a Vector) String() string {
 	return b.String()
 }
 
-func (z *Vector) SetZeros() *Vector {
+func (z *Vector) SetScalar(a float64) *Vector {
 	n := len(z.Data)
 	if n == 0 {
 		return z
 	}
 	for i := 0; i < n; i++ {
-		z.Data[i] = 0.0
+		z.Data[i] = a
 	}
 	return z
 }
@@ -94,6 +94,31 @@ func (a Vector) Mean() float64 {
 		s += d
 	}
 	return s/float64(n)
+}
+
+// Euclidian (L2) norm
+func (a Vector) Mag() float64 {
+	n := len(a.Data)
+	if n == 0 {
+		return 0.0
+	}
+	s := 0.0
+	for i := 0; i < n; i++ {
+		s += a.Data[i] * a.Data[i]
+	}
+	return math.Sqrt(s)
+}
+
+func (z *Vector) Normalize() *Vector {
+	mag := z.Mag()
+	if mag == 0.0 {
+		return z
+	}
+	n := len(z.Data)
+	for i := 0; i < n; i++ {
+		z.Data[i] /= mag
+	}
+	return z
 }
 
 func (a Vector) ApproxEquals(other Vector, tol float64) bool {
@@ -137,7 +162,7 @@ func (z *Vector) Add(a, b *Vector) *Vector {
 	return z
 }
 
-func (z *Vector) AddWithScale(a *Vector, b *Vector, sa float64, sb float64) *Vector {
+func (z *Vector) Blend(a *Vector, b *Vector, sa float64, sb float64) *Vector {
 	n := len(z.Data)
 	if n != len(a.Data) || n != len(b.Data) {
 		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
