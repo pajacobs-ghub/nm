@@ -56,7 +56,7 @@ func (a Vector) String() string {
 	n := len(a.Data)
 	b.WriteString("[")
 	for i, d := range a.Data {
-		b.WriteString(fmt.Sprintf("%0.6f", d))
+		b.WriteString(fmt.Sprintf("%g", d))
 		if i+1 < n {
 			b.WriteString(", ")
 		}

@@ -49,30 +49,25 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"pj/nm/array"
 )
 
 //-----------------------------------------------------------------------------
 
 type Vertex struct {
-	X []float64
+	X array.Vector
 	F float64
 }
 
 func NewVertex(n int) Vertex {
-	return Vertex{X: make([]float64, n), F: 0.0}
+	return Vertex{X: array.VectorZeros(n), F: 0.0}
 }
 
 func (v Vertex) String() string {
 	// We write a JSON compatible representation
 	// so that we can use it when writing the full simplex.
 	// It is readable enough for standard printing.
-	var b bytes.Buffer
-	b.WriteString(fmt.Sprintf("{%q:[%g", "x", v.X[0]))
-	for i := 1; i < len(v.X); i++ {
-		b.WriteString(fmt.Sprintf(", %g", v.X[i]))
-	}
-	b.WriteString(fmt.Sprintf("], %q:%g}", "f", v.F))
-	return b.String()
+	return fmt.Sprintf("{%q:%s, %q:%g}", "x", v.X.String(), "f", v.F)
 }
 
 func approxEquals(a float64, b float64, tol float64) bool {
@@ -81,16 +76,7 @@ func approxEquals(a float64, b float64, tol float64) bool {
 }
 
 func (v Vertex) ApproxEquals(other Vertex, tol float64) bool {
-	result := true
-	for i := 0; i < len(v.X); i++ {
-		if !approxEquals(v.X[i], other.X[i], tol) {
-			result = false
-		}
-	}
-	if !approxEquals(v.F, other.F, tol) {
-		result = false
-	}
-	return result
+	return v.X.ApproxEquals(other.X, tol) && approxEquals(v.F, other.F, tol)
 }
 
 // We want to compute a centroid of a subset of vertices in the simplex,
@@ -105,18 +91,15 @@ func Centroid(va []Vertex, p int) (*Vertex, error) {
 	if k <= 0 {
 		return nil, errors.New("Not enough vertices remaining.")
 	}
-	n := len(va[0].X)
+	n := len(va[0].X.Data)
 	c := NewVertex(n)
-	for i := 0; i < (nv - p); i++ {
-		for j := 0; j < n; j++ {
-			c.X[j] += va[i].X[j]
-		}
+	for i := 0; i < k; i++ {
+		c.X.Add(&c.X, &(va[i].X))
 		c.F += va[i].F
 	}
-	for j := 0; j < n; j++ {
-		c.X[j] /= float64(nv - p)
-	}
-	c.F /= float64(nv - p)
+	s := 1.0/float64(k)
+	c.X.Scale(s)
+	c.F *= s
 	return &c, nil
 }
 
@@ -146,7 +129,7 @@ func MakeSimplexAboutPoint(
 	// TODO Option to do the function evaluations in parallel.
 	fx0 := f(x0)
 	nfe += 1
-	smplx := []Vertex{Vertex{x0, fx0}}
+	smplx := []Vertex{Vertex{array.VectorCopyArray(x0), fx0}}
 	for i := 0; i < n; i++ {
 		x1 := make([]float64, n)
 		for j := 0; j < n; j++ {
@@ -155,7 +138,7 @@ func MakeSimplexAboutPoint(
 		x1[i] += dx[i]
 		fx1 := f(x1)
 		nfe += 1
-		smplx = append(smplx, Vertex{x1, fx1})
+		smplx = append(smplx, Vertex{array.VectorCopyArray(x1), fx1})
 	}
 	sortSimplex(smplx)
 	return smplx, nfe, nil
@@ -243,7 +226,7 @@ func (m *Minimizer) String() string {
 		"tol", m.Tol)
 }
 
-func (m *Minimizer) replaceVertex(i int, xMid []float64) (bool, int) {
+func (m *Minimizer) replaceVertex(i int, xMid array.Vector) (bool, int) {
 	// Try to replace the specified i vertex with a better point,
 	// returning a flag to indicate if successful.
 	//
@@ -259,21 +242,17 @@ func (m *Minimizer) replaceVertex(i int, xMid []float64) (bool, int) {
 	xHigh := m.Vertices[i].X
 	fHigh := m.Vertices[i].F
 	// First, try moving away from worst point by reflection through centroid.
-	n := len(xHigh)
-	xRefl := make([]float64, n)
-	for j := 0; j < n; j++ {
-		xRefl[j] = xMid[j] + m.Kreflect*(xMid[j]-xHigh[j])
-	}
-	fRefl := m.F(xRefl)
+	n := len(xHigh.Data)
+	xRefl := array.VectorZeros(n)
+	xRefl.Blend(&xMid, &xHigh, (1.0+m.Kreflect), -m.Kreflect)
+	fRefl := m.F(xRefl.Data)
 	nfe += 1
 	if fRefl < fMin {
 		// The reflection through the centroid is good,
 		// try to extend in the same direction.
-		xExt := make([]float64, n)
-		for j := 0; j < n; j++ {
-			xExt[j] = xMid[j] + m.Kextend*(xRefl[j]-xMid[j])
-		}
-		fExt := m.F(xExt)
+		xExt := array.VectorZeros(n)
+		xExt.Blend(&xMid, &xRefl, (1.0-m.Kextend), m.Kextend)
+		fExt := m.F(xExt.Data)
 		nfe += 1
 		if fExt < fRefl {
 			// Keep the extension because it's best.
@@ -296,11 +275,9 @@ func (m *Minimizer) replaceVertex(i int, xMid []float64) (bool, int) {
 		if count <= 1 {
 			// Not too many points are higher than the original reflection.
 			// Try a contraction on the reflection-side of the centroid.
-			xCon := make([]float64, n)
-			for j := 0; j < n; j++ {
-				xCon[j] = (1.0-m.Kcontract)*xMid[j] + m.Kcontract*xHigh[j]
-			}
-			fCon := m.F(xCon)
+			xCon := array.VectorZeros(n)
+			xCon.Blend(&xMid, &xHigh, (1.0-m.Kcontract), m.Kcontract)
+			fCon := m.F(xCon.Data)
 			nfe += 1
 			if fCon < fHigh {
 				// At least we haven't gone uphill; accept.
@@ -325,14 +302,12 @@ func (m *Minimizer) contractAboutBestPoint() {
 	// Move all other simplex vertices to half-way between their current point
 	// and the best point.
 	// TODO Option to do the function evaluations in parallel.
-	n := len(xMin)
-	for i := 1; i <= n; i++ {
-		for j := 0; j < n; j++ {
-			m.Vertices[i].X[j] = 0.5*xMin[j] + 0.5*m.Vertices[i].X[j]
-		}
-		m.Vertices[i].F = m.F(m.Vertices[i].X)
+	nv := len(m.Vertices)
+	for i := 1; i < nv; i++ {
+		m.Vertices[i].X.Blend(&xMin, &(m.Vertices[i].X), 0.5, 0.5)
+		m.Vertices[i].F = m.F(m.Vertices[i].X.Data)
 	}
-	m.NFEvaluations += n
+	m.NFEvaluations += nv-1
 	return
 }
 
@@ -346,7 +321,8 @@ func (m *Minimizer) TakeSteps(nsteps int) error {
 		if err != nil {
 			return fmt.Errorf("Error while computing centroid: %s", err)
 		}
-		// Try to replace the P worst points.
+		// Try to replace the P worst points by generating new points
+		// about the current centroid (vMid).
 		// TODO Option to do the function evaluations in parallel.
 		anySuccess := false
 		for i := 0; i < m.P; i++ {

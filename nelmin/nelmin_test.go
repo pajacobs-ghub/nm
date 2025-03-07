@@ -10,12 +10,14 @@ import (
 	"fmt"
 	"math"
 	"testing"
+	"pj/nm/array"
 )
 
 func TestVertex(t *testing.T) {
 	fmt.Println("Test Vertex Functions")
-	v1 := Vertex{X: []float64{1.0, 2.0, 3.0}, F: 99.0}
-	v2 := Vertex{[]float64{1.0, 2.0, 3.0}, 99.0}
+	v1 := Vertex{X: array.VectorCopyArray([]float64{1.0, 2.0, 3.0}), F: 99.0}
+	v2 := Vertex{array.VectorCopyArray([]float64{1.0, 2.0, 3.0}), 99.0}
+	fmt.Printf("v1=%s\n", v1.String())
 	if !v1.ApproxEquals(v2, 1.0e-6) {
 		t.Errorf("Initialization: Should be the same v1=%v, v2=%v", v1, v2)
 	}
@@ -28,7 +30,7 @@ func TestVertex(t *testing.T) {
 	if err != nil {
 		t.Errorf("Centroid calc, got error: %s", err)
 	} else {
-		v5 := Vertex{X: []float64{1.0, 2.0, 3.0}, F: 99.0}
+		v5 := Vertex{X: array.VectorCopyArray([]float64{1.0, 2.0, 3.0}), F: 99.0}
 		if !v4.ApproxEquals(v5, 1.0e-6) {
 			t.Errorf("Centroid calc, Should be the same v4=%v, v5=%v", v1, v2)
 		}
@@ -60,7 +62,7 @@ func TestSimplex(t *testing.T) {
 	var vmid *Vertex
 	vmid, err = Centroid(smplx, 1)
 	// fmt.Println("vmid=", vmid)
-	vRef := Vertex{X: []float64{1.0333, 2.0667, 3.0}, F: 5.150}
+	vRef := Vertex{X: array.VectorCopyArray([]float64{1.0333, 2.0667, 3.0}), F: 5.150}
 	if !vmid.ApproxEquals(vRef, 1.0e-3) {
 		t.Errorf("Simplex centroid: Should be same vmid=%v, vRef=%v", vmid, vRef)
 	}
@@ -82,7 +84,7 @@ func TestMinimizer1(t *testing.T) {
 	if m.Nrestarts != 0 {
 		t.Errorf("Wrong number of restarts: nrestarts=%v should be 0", m.Nrestarts)
 	}
-	vRef := Vertex{X: []float64{1.0, 1.0, 1.0}, F: 0.0}
+	vRef := Vertex{X: array.VectorCopyArray([]float64{1.0, 1.0, 1.0}), F: 0.0}
 	vMin := m.Vertices[0]
 	if !vMin.ApproxEquals(vRef, 1.0e-3) {
 		t.Errorf("Wrong minimum point: Should be same vMin=%v, vExpected=%v", vMin, vRef)
@@ -117,7 +119,7 @@ func TestMinimizer2(t *testing.T) {
 	if m.Nrestarts != 0 {
 		t.Errorf("Wrong number of restarts: nrestarts=%v should be 0", m.Nrestarts)
 	}
-	vRef := Vertex{X: []float64{0.811, -0.585}, F: -67.1}
+	vRef := Vertex{X: array.VectorCopyArray([]float64{0.811, -0.585}), F: -67.1}
 	vMin := m.Vertices[0]
 	if !vMin.ApproxEquals(vRef, 1.0e-3) {
 		t.Errorf("Wrong minimum point, Should be same vMin=%v, vRef=%v", vMin, vRef)
@@ -158,7 +160,7 @@ func TestMinimizer3(t *testing.T) {
 	if m.Nrestarts != 0 {
 		t.Errorf("Wrong number of restarts: nrestarts=%v should be 0", m.Nrestarts)
 	}
-	vRef := Vertex{X: []float64{1.801, -1.842, -0.463, -1.205}, F: 0.0009}
+	vRef := Vertex{X: array.VectorCopyArray([]float64{1.801, -1.842, -0.463, -1.205}), F: 0.0009}
 	vMin := m.Vertices[0]
 	if !vMin.ApproxEquals(vRef, 1.0e-3) {
 		t.Errorf("Example 3.5, Should be the same vMin=%v, vRef=%v", vMin, vRef)
