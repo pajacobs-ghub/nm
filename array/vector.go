@@ -20,38 +20,30 @@ func (v Vector) IsEmpty() bool {
 	return len(v.Data) == 0
 }
 
-func VectorZeros(n int) Vector {
-	return Vector{Data: make([]float64, n)}
+func NewVector(n int) *Vector {
+	return &Vector{Data: make([]float64, n)}
 }
 
-func VectorOnes(n int) Vector {
-	z := Vector{Data: make([]float64, n)}
-	for i := 0; i < n; i++ {
-		z.Data[i] = 1.0
-	}
-	return z
-}
-
-func VectorCopyArray(data []float64) Vector {
+func NewVectorFromArray(data []float64) *Vector {
 	n := len(data)
 	z := Vector{Data: make([]float64, n)}
 	for i := 0; i < n; i++ {
 		z.Data[i] = data[i]
 	}
-	return z
+	return &z
 }
 
-func (a Vector) Clone() Vector {
+func (a *Vector) Clone() *Vector {
 	n := len(a.Data)
 	z := Vector{Data: make([]float64, n)}
 	for i := 0; i < n; i++ {
 		z.Data[i] = a.Data[i]
 	}
-	return z
+	return &z
 }
 
 // Generate a JSON-compatible string representation.
-func (a Vector) String() string {
+func (a *Vector) String() string {
 	var b bytes.Buffer
 	n := len(a.Data)
 	b.WriteString("[")
@@ -65,7 +57,7 @@ func (a Vector) String() string {
 	return b.String()
 }
 
-func (z *Vector) SetScalar(a float64) *Vector {
+func (z *Vector) SetFromScalar(a float64) *Vector {
 	n := len(z.Data)
 	if n == 0 {
 		return z
@@ -76,7 +68,21 @@ func (z *Vector) SetScalar(a float64) *Vector {
 	return z
 }
 
-func (a Vector) Sum() float64 {
+func (z *Vector) SetFromVector(a Vector) *Vector {
+	n := len(z.Data)
+	if n != len(a.Data) {
+		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v", len(z.Data), len(a.Data)))
+	}
+	if n == 0 {
+		return z
+	}
+	for i := 0; i < n; i++ {
+		z.Data[i] = a.Data[i]
+	}
+	return z
+}
+
+func (a *Vector) Sum() float64 {
 	s := 0.0
 	for _, d := range a.Data {
 		s += d
@@ -84,7 +90,7 @@ func (a Vector) Sum() float64 {
 	return s
 }
 
-func (a Vector) Mean() float64 {
+func (a *Vector) Mean() float64 {
 	n := len(a.Data)
 	if n == 0 {
 		return 0.0
@@ -97,7 +103,7 @@ func (a Vector) Mean() float64 {
 }
 
 // Euclidian (L2) norm
-func (a Vector) Mag() float64 {
+func (a *Vector) Mag() float64 {
 	n := len(a.Data)
 	if n == 0 {
 		return 0.0
@@ -121,7 +127,7 @@ func (z *Vector) Normalize() *Vector {
 	return z
 }
 
-func (a Vector) ApproxEquals(other Vector, tol float64) bool {
+func (a *Vector) ApproxEquals(other *Vector, tol float64) bool {
 	n := len(a.Data)
 	if n != len(other.Data) {
 		return false

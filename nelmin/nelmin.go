@@ -55,12 +55,12 @@ import (
 //-----------------------------------------------------------------------------
 
 type Vertex struct {
-	X array.Vector
+	X *array.Vector
 	F float64
 }
 
 func NewVertex(n int) Vertex {
-	return Vertex{X: array.VectorZeros(n), F: 0.0}
+	return Vertex{X: array.NewVector(n), F: 0.0}
 }
 
 func (v Vertex) String() string {
@@ -94,7 +94,7 @@ func Centroid(va []Vertex, p int) (*Vertex, error) {
 	n := len(va[0].X.Data)
 	c := NewVertex(n)
 	for i := 0; i < k; i++ {
-		c.X.Add(&c.X, &(va[i].X))
+		c.X.Add(c.X, va[i].X)
 		c.F += va[i].F
 	}
 	s := 1.0/float64(k)
@@ -129,7 +129,7 @@ func MakeSimplexAboutPoint(
 	// TODO Option to do the function evaluations in parallel.
 	fx0 := f(x0)
 	nfe += 1
-	smplx := []Vertex{Vertex{array.VectorCopyArray(x0), fx0}}
+	smplx := []Vertex{Vertex{array.NewVectorFromArray(x0), fx0}}
 	for i := 0; i < n; i++ {
 		x1 := make([]float64, n)
 		for j := 0; j < n; j++ {
@@ -138,7 +138,7 @@ func MakeSimplexAboutPoint(
 		x1[i] += dx[i]
 		fx1 := f(x1)
 		nfe += 1
-		smplx = append(smplx, Vertex{array.VectorCopyArray(x1), fx1})
+		smplx = append(smplx, Vertex{array.NewVectorFromArray(x1), fx1})
 	}
 	sortSimplex(smplx)
 	return smplx, nfe, nil
@@ -226,7 +226,7 @@ func (m *Minimizer) String() string {
 		"tol", m.Tol)
 }
 
-func (m *Minimizer) replaceVertex(i int, xMid array.Vector) (bool, int) {
+func (m *Minimizer) replaceVertex(i int, xMid *array.Vector) (bool, int) {
 	// Try to replace the specified i vertex with a better point,
 	// returning a flag to indicate if successful.
 	//
@@ -243,15 +243,15 @@ func (m *Minimizer) replaceVertex(i int, xMid array.Vector) (bool, int) {
 	fHigh := m.Vertices[i].F
 	// First, try moving away from worst point by reflection through centroid.
 	n := len(xHigh.Data)
-	xRefl := array.VectorZeros(n)
-	xRefl.Blend(&xMid, &xHigh, (1.0+m.Kreflect), -m.Kreflect)
+	xRefl := array.NewVector(n)
+	xRefl.Blend(xMid, xHigh, (1.0+m.Kreflect), -m.Kreflect)
 	fRefl := m.F(xRefl.Data)
 	nfe += 1
 	if fRefl < fMin {
 		// The reflection through the centroid is good,
 		// try to extend in the same direction.
-		xExt := array.VectorZeros(n)
-		xExt.Blend(&xMid, &xRefl, (1.0-m.Kextend), m.Kextend)
+		xExt := array.NewVector(n)
+		xExt.Blend(xMid, xRefl, (1.0-m.Kextend), m.Kextend)
 		fExt := m.F(xExt.Data)
 		nfe += 1
 		if fExt < fRefl {
@@ -275,8 +275,8 @@ func (m *Minimizer) replaceVertex(i int, xMid array.Vector) (bool, int) {
 		if count <= 1 {
 			// Not too many points are higher than the original reflection.
 			// Try a contraction on the reflection-side of the centroid.
-			xCon := array.VectorZeros(n)
-			xCon.Blend(&xMid, &xHigh, (1.0-m.Kcontract), m.Kcontract)
+			xCon := array.NewVector(n)
+			xCon.Blend(xMid, xHigh, (1.0-m.Kcontract), m.Kcontract)
 			fCon := m.F(xCon.Data)
 			nfe += 1
 			if fCon < fHigh {
@@ -304,7 +304,7 @@ func (m *Minimizer) contractAboutBestPoint() {
 	// TODO Option to do the function evaluations in parallel.
 	nv := len(m.Vertices)
 	for i := 1; i < nv; i++ {
-		m.Vertices[i].X.Blend(&xMin, &(m.Vertices[i].X), 0.5, 0.5)
+		m.Vertices[i].X.Blend(xMin, m.Vertices[i].X, 0.5, 0.5)
 		m.Vertices[i].F = m.F(m.Vertices[i].X.Data)
 	}
 	m.NFEvaluations += nv-1
