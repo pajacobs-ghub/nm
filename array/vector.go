@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"bytes"
+	"errors"
 )
 
 type Vector struct {
@@ -68,18 +69,19 @@ func (z *Vector) SetFromScalar(a float64) *Vector {
 	return z
 }
 
-func (z *Vector) SetFromVector(a Vector) *Vector {
+func (z *Vector) SetFromVector(a Vector) (*Vector, error) {
 	n := len(z.Data)
 	if n != len(a.Data) {
-		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v", len(z.Data), len(a.Data)))
+		msg := fmt.Sprintf("Inconsistent array lengths z:%v a:%v", len(z.Data), len(a.Data))
+		return z, errors.New(msg)
 	}
 	if n == 0 {
-		return z
+		return z, nil
 	}
 	for i := 0; i < n; i++ {
 		z.Data[i] = a.Data[i]
 	}
-	return z
+	return z, nil
 }
 
 func (a *Vector) Sum() float64 {
@@ -156,51 +158,55 @@ func (z *Vector) Scale(a float64) *Vector {
 // Also, we allow aliasing of the arguments so that we can achieve certain
 // effects, e.g. z = z + a can be obtained as z = z.Add(z,a)
 
-func (z *Vector) Add(a, b *Vector) *Vector {
+func (z *Vector) Add(a, b *Vector) (*Vector, error) {
 	n := len(z.Data)
 	if n != len(a.Data) || n != len(b.Data) {
-		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
-			len(z.Data), len(a.Data), len(b.Data)))
+		msg := fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
+			len(z.Data), len(a.Data), len(b.Data))
+		return z, errors.New(msg)
 	}
 	for i := 0; i < n; i++ {
 		z.Data[i] = a.Data[i] + b.Data[i]
 	}
-	return z
+	return z, nil
 }
 
-func (z *Vector) Blend(a *Vector, b *Vector, sa float64, sb float64) *Vector {
+func (z *Vector) Blend(a *Vector, b *Vector, sa float64, sb float64) (*Vector, error) {
 	n := len(z.Data)
 	if n != len(a.Data) || n != len(b.Data) {
-		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
-			len(z.Data), len(a.Data), len(b.Data)))
+		msg := fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
+			len(z.Data), len(a.Data), len(b.Data))
+		return z, errors.New(msg)
 	}
 	for i := 0; i < n; i++ {
 		z.Data[i] = sa*a.Data[i] + sb*b.Data[i]
 	}
-	return z
+	return z, nil
 }
 
-func (z *Vector) Sub(a, b *Vector) *Vector {
+func (z *Vector) Sub(a, b *Vector) (*Vector, error) {
 	n := len(z.Data)
 	if n != len(a.Data) || n != len(b.Data) {
-		panic(fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
-			len(z.Data), len(a.Data), len(b.Data)))
+		msg := fmt.Sprintf("Inconsistent array lengths z:%v a:%v b:%v",
+			len(z.Data), len(a.Data), len(b.Data))
+		return z, errors.New(msg)
 	}
 	for i := 0; i < n; i++ {
 		z.Data[i] = a.Data[i] - b.Data[i]
 	}
-	return z
+	return z, nil
 }
 
-func VectorDot(a, b *Vector) float64 {
+func VectorDot(a, b *Vector) (float64, error) {
 	n := len(a.Data)
 	if n != len(b.Data) {
-		panic(fmt.Sprintf("Inconsistent array lengths a:%v b:%v",
-			len(a.Data), len(b.Data)))
+		msg := fmt.Sprintf("Inconsistent array lengths a:%v b:%v",
+			len(a.Data), len(b.Data))
+		return 0.0, errors.New(msg)
 	}
 	s := 0.0
 	for i := 0; i < n; i++ {
 		s += a.Data[i] * b.Data[i]
 	}
-	return s
+	return s, nil
 }

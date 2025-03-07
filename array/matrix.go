@@ -122,7 +122,7 @@ func (c *Matrix) GaussJordanElimination() (*Matrix, error) {
 	if nrows == 1 {
 		det := c.Data[0][0]
 		if math.Abs(det) < verySmallValue {
-			return c, errors.New(fmt.Sprintf("Essentially singular det=%v", det))
+			return c, errors.New(fmt.Sprintf("Singular with det=%v", det))
 		}
 		for j := 0; j < ncols; j++ {
 			c.Data[0][j] /= det
@@ -138,7 +138,7 @@ func (c *Matrix) GaussJordanElimination() (*Matrix, error) {
 			}
 		}
 		if math.Abs(c.Data[p][j]) < verySmallValue {
-			return c, errors.New(fmt.Sprintf("Essentially singular pivot=%v", c.Data[p][j]))
+			return c, errors.New(fmt.Sprintf("Singular with pivot=%v", c.Data[p][j]))
 		}
 		if p != j {
 			// Swap rows, to get pivot onto the diagonal.

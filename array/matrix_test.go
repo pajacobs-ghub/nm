@@ -28,4 +28,7 @@ func TestMatrix(t *testing.T) {
 	m3 := NewMatrixFromArray([][]float64{{0.0,2.0,1.0,0.0},{2.0,2.0,0.0,1.0}})
 	m4, err := m3.GaussJordanElimination()
 	fmt.Println("m4=", m4.String(), " err=", err)
+	m5 := NewMatrixFromArray([][]float64{{0.0,2.0,1.0,0.0},{0.0,2.0,0.0,1.0}})
+	m6, err := m5.GaussJordanElimination()
+	fmt.Println("m6=", m6.String(), " err=", err)
 }

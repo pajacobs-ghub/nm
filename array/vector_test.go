@@ -50,11 +50,23 @@ func TestVector(t *testing.T) {
 	if len(v4.Data) != 4 || !v4.ApproxEquals(v5, 1.0e-9) {
 		t.Errorf("Vector clone error v5= %v want= %v", v5.String(), v4.String())
 	}
+	v4a, err := v4.SetFromVector(*v5)
+	if err != nil || !v4a.ApproxEquals(v5, 1.0e-9) {
+		t.Errorf("Failed to set vector elements.")
+	}
+	v4a, err = v4.SetFromVector(*v1)
+	if err == nil {
+		t.Errorf("Should have detected mismatch in length when setting Vector elements.")
+	}
 	v6 := NewVector(4)
 	v6.Add(v4, v5)
 	v5.Scale(2.0)
 	if len(v6.Data) != 4 || !v6.ApproxEquals(v5, 1.0e-9) {
 		t.Errorf("Vector add error v6= %v want= %v", v6.String(), v5.String())
+	}
+	_, err = v6.Add(v4, v1)
+	if err == nil {
+		t.Errorf("Vector Add should have detected mismatch in lengths.")
 	}
 	v6.SetFromScalar(0.0)
 	if len(v6.Data) != 4 || v6.Data[0] != 0.0 {
@@ -65,7 +77,7 @@ func TestVector(t *testing.T) {
 		t.Errorf("Vector add-with-scale error v6= %v want= %v", v6.String(), v5.String())
 	}
 	v8 := NewVector(4).SetFromScalar(1.0)
-	s := VectorDot(v8, v8)
+	s, _ := VectorDot(v8, v8)
 	if math.Abs(s - 4.0) > 1.0e-9 {
 		t.Errorf("Vector dot product error s= %v want= %v", s, 4.0)
 	}
