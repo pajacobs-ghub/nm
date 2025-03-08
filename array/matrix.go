@@ -25,36 +25,45 @@ func (v Matrix) IsEmpty() bool {
 	return len(v.Data) == 0
 }
 
-func NewMatrix(nrows, ncols int) *Matrix {
+func NewMatrix(nrows, ncols int) (*Matrix, error) {
+	if nrows <= 0 {
+		msg := fmt.Sprintf("Invalid value for nrows=%v", nrows)
+		return nil, errors.New(msg)
+	}
 	z := Matrix{Data: make([][]float64, nrows)}
+	if ncols <= 0 {
+		msg := fmt.Sprintf("Invalid value for ncols=%v", ncols)
+		return &z, errors.New(msg)
+	}
 	for i := 0; i < nrows; i++ {
 		z.Data[i] = make([]float64, ncols)
 	}
-	return &z
+	return &z, nil
 }
 
-func NewMatrixFromArray(data [][]float64) *Matrix {
+func NewMatrixFromArray(data [][]float64) (*Matrix, error) {
 	z := Matrix{}
 	nrows := len(data)
 	if nrows == 0 {
-		return &z
+		return &z, errors.New("Zero rows")
 	}
 	z.Data = make([][]float64, nrows)
 	ncols0 := len(data[0])
 	if ncols0 == 0 {
-		return &z
+		return &z, errors.New("Zero columns")
 	}
 	for i := 0; i < nrows; i++ {
 		ncols := len(data[i])
 		if ncols != ncols0 {
-			panic(fmt.Sprintf("Ragged rows: ncols0=%d ncols[%d]=%d", ncols0, i, ncols))
+			msg := fmt.Sprintf("Ragged rows: ncols0=%d ncols[%d]=%d", ncols0, i, ncols)
+			return &z, errors.New(msg)
 		}
 		z.Data[i] = make([]float64, ncols0)
 		for j := 0; j < ncols; j++ {
 			z.Data[i][j] = data[i][j]
 		}
 	}
-	return &z
+	return &z, nil
 }
 
 func (a *Matrix) String() string {
@@ -77,6 +86,28 @@ func (a *Matrix) String() string {
 	}
 	b.WriteString("]")
 	return b.String()
+}
+
+func (a *Matrix) ApproxEquals(other *Matrix, tol float64) bool {
+	nrows := len(a.Data)
+	if nrows != len(other.Data) {
+		return false
+	}
+	for i := 0; i < nrows; i++ {
+		ncols := len(a.Data[i])
+		if ncols != len(other.Data[i]) {
+			return false
+		}
+		for j := 0; j < ncols; j++ {
+			aa := a.Data[i][j]
+			bb := other.Data[i][j]
+	    	// Relative comparison for large numbers, absolute comparison for small numbers
+			if math.Abs(aa-bb)/(0.5*(math.Abs(aa)+math.Abs(bb)+1.0)) > tol {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (a *Matrix) NormInf() float64 {
