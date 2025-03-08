@@ -49,7 +49,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"pj/nm/array"
+	"github.com/pajacobs-ghub/nm/array"
 )
 
 //-----------------------------------------------------------------------------

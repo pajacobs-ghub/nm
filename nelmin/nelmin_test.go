@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math"
 	"testing"
-	"pj/nm/array"
+	"github.com/pajacobs-ghub/nm/array"
 )
 
 func TestVertex(t *testing.T) {
